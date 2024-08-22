@@ -1,29 +1,34 @@
 import React from "react";
 import logo from "./logo.svg";
-import "./App.scss";
+import "./styles/App.scss";
 import Algorithms from "./logic/Algorithms";
+import CircleSVG from "./Components/CircleSVG";
 
-const array = Algorithms(10);
-console.log(array);
-function bubble() {
+const array = Algorithms(9);
+
+function bubbleSort() {
   for (let j = 0; j < array.length; j++) {
-    for (let i = 0; i < array.length - 1; i++) {
-      if (array[i] < array[i + 1]) {
+    let swapped = false; //optimization: check if a swap operation has occured, if not, then value is in its correct place and can exit inner loop
+    for (let i = 0; i < array.length - 1 - j; i++) {
+      if (array[i] > array[i + 1]) {
         const temp = array[i];
         array[i] = array[i + 1];
         array[i + 1] = temp;
+        swapped = true;
       }
     }
+    //optimization to check if a swap operation has been occured. Otherwise arrway is already sorted, so we can exit
+    if (!swapped) break;
   }
 }
 
-bubble();
-console.log(array);
+bubbleSort();
+console.log("final print: " + array);
 function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+        <CircleSVG></CircleSVG>
         <p>
           Edit <code>src/App.tsx</code> and save to reload.
         </p>
