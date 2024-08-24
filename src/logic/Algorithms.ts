@@ -1,7 +1,7 @@
 export default function Algorithms(max: number) {
-  var myArray = [];
+  let myArray = [];
   for (let i = 0; i < max; i++) {
-    myArray.push(Math.floor(Math.random() * 30));
+    myArray.push(Math.floor(Math.random() * 255));
   }
   //console.log(myArray);
   return myArray;
