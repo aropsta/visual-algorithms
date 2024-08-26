@@ -1,9 +1,9 @@
 export default function genArray(max: number) {
   let array = [];
   for (let i = 0; i < max; i++) {
-    array.push(Math.floor(Math.random() * 100));
+    array.push(randomValue());
   }
-  // array = [10, 25, 100, 0, 40];
+  // array = [20, 40, 60, 80, 100];
   // array = [1, 2, 3, 4, 5];
   return array;
 }
@@ -22,4 +22,8 @@ export function bubbleSort(array: number[]) {
     //optimization to check if a swap operation has been occured. Otherwise arrway is already sorted, so we can exit
     if (!swapped) break;
   }
+}
+
+export function randomValue() {
+  return Math.floor(Math.random() * 100);
 }

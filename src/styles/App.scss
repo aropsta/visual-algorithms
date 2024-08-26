@@ -17,12 +17,31 @@
 section {
   width: 100%;
   height: 100%;
-  display: flex;
   justify-content: center;
-  padding-inline: 0rem;
+  padding-inline: 2rem;
   align-items: flex-start;
 }
 
+
+
+.rect {}
+
+
+.domain {
+  color: purple;
+  color: black;
+}
+
+.tick {
+
+
+  line {}
+
+  text {
+
+    font-size: 5px;
+  }
+}
 
 .svg {}
 
