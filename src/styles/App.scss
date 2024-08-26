@@ -17,14 +17,20 @@
 section {
   width: 100%;
   height: 100%;
-  justify-content: center;
+  display: flex;
+  justify-content: space-around;
+  flex-direction: column;
+
   padding-inline: 2rem;
-  align-items: flex-start;
+  align-items: center;
 }
 
 
 
 .rect {}
+
+
+button {}
 
 
 .domain {
@@ -43,7 +49,9 @@ section {
   }
 }
 
-.svg {}
+svg {
+  height: min(50%, 40rem);
+}
 
 .App-header {
   background-color: #282c34;
