@@ -1,208 +1,220 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import generateData, { bubbleSort, randomValue } from "../logic/Algorithms";
-import { Selection, select } from "d3-selection";
-import { scaleLinear, scaleBand } from "d3-scale";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import genObj, {
+  randomValue,
+  Bar,
+  state,
+  bubbleSort,
+} from "../logic/Algorithms";
 import * as d3 from "d3";
+import { shuffle } from "d3";
+
+//size of our SVG chart
+export const enum chartDimens {
+  paddingBlock = 16,
+  paddingInline = 5,
+
+  outerWidth = 300,
+  outerHeight = 210,
+
+  minWidth = 0,
+  minHeight = 0,
+
+  innerHeight = outerHeight - 2 * paddingBlock,
+  innerWidth = outerWidth - 2 * paddingInline,
+}
 
 export default function Graph() {
   //Svg DOM reference and d3.select variables
   const svgRef = useRef<SVGSVGElement>(null);
-  const [svgSelection, selectSVG] = useState<null | Selection<
-    SVGSVGElement | null,
-    unknown,
-    null,
-    undefined
-  >>(null);
 
   //The data array and size that is dynamically set by a slider
-  const [dataSize, setDataSize] = useState(3);
-  const [data, setData] = useState(generateData(dataSize));
+  const [sliderValue, setSliderValue] = useState(10);
+  const [data, setData] = useState<Bar[]>(genObj(10));
 
-  //d3 function to get the maximum value from a given array
-  //more details https://d3js.org/d3-array/summarize#max
-  const maxValue = d3.max(data);
-  console.log("max: " + maxValue);
-  const minValue = 0;
-  const maxDataSize = 100;
-
-  //size of our SVG chart
-  const enum chartDimens {
-    paddingBlock = 16,
-    paddingInline = 5,
-    outerHeight = 210,
-    innerHeight = outerHeight - 2 * paddingBlock,
-
-    minHeight = 0,
-
-    outerWidth = 300,
-    innerWidth = outerWidth - 2 * paddingInline,
-    minWidth = 0,
+  function useArray(array: Bar[]) {
+    return useMemo(() => [...array], [array]);
   }
 
-  //Scale the domain of the data into a given range available for displaying it
-  let scaleY = scaleLinear()
-    .domain([minValue, maxValue!])
-    .range([chartDimens.paddingBlock, chartDimens.innerHeight]);
+  useEffect(() => {
+    console.log("useEffect()");
+    const svgSelection = d3.select(svgRef.current);
+    const trans = d3.transition().duration(500).ease(d3.easeCubicIn);
+    const trans2 = d3.transition().ease(d3.easeCubicIn);
 
-  //Band scales divide the domain of the data into uniform bands, then maps those to the range available to display it
-  let scaleX = scaleBand()
-    .domain(data.map((_, i) => i.toString()))
-    .range([chartDimens.paddingInline, chartDimens.innerWidth])
-    .align(0.5)
-    .paddingInner(0.13)
-    .round(true);
+    const domainMax = d3.max(data.map((item) => item.value));
 
-  function setGraphScaling() {
     //Scale the domain of the data into a given range available for displaying it
-    scaleY = scaleLinear()
-      .domain([minValue, maxValue!])
+    //https://d3js.org/d3-scale/linear
+    let yScale = d3
+      .scaleLinear()
+      .domain([0, domainMax!])
       .range([chartDimens.paddingBlock, chartDimens.innerHeight]);
 
     //Band scales divide the domain of the data into uniform bands, then maps those to the range available to display it
-    scaleX = scaleBand()
-      .domain(data.map((_, i) => i.toString()))
+    //https://d3js.org/d3-scale/band
+    let xScale = d3
+      .scaleBand()
+      .domain(data.map((d, i) => i.toString()))
       .range([chartDimens.paddingInline, chartDimens.innerWidth])
       .align(0.5)
-      .paddingInner(0.11)
+      .paddingInner(0.12)
       .round(true);
-  }
 
-  // generate our graph of bars and axis
-  function createBars(
-    svgSelection: Selection<SVGSVGElement | null, unknown, null, undefined>,
-  ) {
-    //------------------Creating the bars for our graph.-----------------------------//
+    //defining our x and y axis
+    //https://d3js.org/d3-axis
+    const xAxis = d3
+      .axisBottom(xScale)
+      .tickSizeInner(3)
+      .tickFormat((d, i) => (i % 1 === 0 ? i.toString() : ""));
+    // const yAxis = d3.axisBottom(yScale);
 
-    // Appending an x-axis to our selection, also positioning it at the same time
-    // const xAxis = svgSelection
-    //   .append("g")
-    //   .attr(
-    //     "transform",
-    //     `translate(0, ${chartDimens.innerHeight + chartDimens.paddingBlock})`,
-    //   )
-    //   .attr("fill", "blue")
-    //   //call function draws the axis on the svg
-    //   .call(d3.axisBottom(scaleX));
+    //Define our joined data+elements
+    const barData = svgSelection.select(".group").selectAll("rect").data(data);
 
-    //y-axis unsed
-    // const yAxisGroup = svgSelection
-    //   .append("g")
-    //   .attr("fill", "white")
-    //   .attr("transform", `translate(${chartDimens.paddingBlock}, 0)`)
-    //   .call(d3.axisLeft(scaleY));
+    // If there is no group/graph, create a new one
+    if (svgSelection.select(".group").empty()) {
+      // Appending a group for our x-axis to our selection, also positioning it at the same time
+      svgSelection!
+        .append("g")
+        .attr("class", "x-axis")
+        .attr(
+          "transform",
+          `translate(0, ${chartDimens.innerHeight + chartDimens.paddingBlock * 2})`,
+        )
+        // .transition(animateAxis)
+        .attr(
+          "transform",
+          `translate(0, ${chartDimens.innerHeight + chartDimens.paddingBlock})`,
+        )
+        //call function draws the axis on the svg
+        .call(xAxis);
 
-    //For the proceeding rectangles, asscociate them with a given array of data.
-    //enter() returns data that is orphaned without an element asscociated to it
-    //More information about d3 data joins https://d3js.org/d3-selection/joining
+      //y-axis unsed
+      // const yAxisGroup = svgSelection
+      //   .append("g")
+      //   .attr("fill", "white")
+      //   .attr("transform", `translate(${chartDimens.paddingBlock}, 0)`)
+      //   .call(yAxis);
 
-    svgSelection
-      .append("rect")
-      .attr("width", chartDimens.outerWidth)
-      .attr("height", chartDimens.outerHeight)
-      .attr("fill", "aqua");
-    const bars = svgSelection.append("g").selectAll("rect").data(data);
-    // Above line also preappends a group before selecting rectangles for data. Makes it simpler to translate them all at once
+      //Begin by appending a group for better management of individual bars
+      //'select' all proceeding rectangles and asscociate them with a given array of data.
+      //For more information about d3 data joins: https://d3js.org/d3-selection/joining
+      const initialBarData = svgSelection
+        .append("g")
+        .attr("class", "group")
+        .selectAll("rect")
+        .data(data)
+        .enter();
 
-    //For each datum, create a rectangle with attributes for it
-    bars
-      .enter()
-      .append("rect")
-      .attr("height", (d) => scaleY(d))
-      .attr("width", scaleX.bandwidth())
-      .attr("scaleY", (d, i) => `${scaleY(d)}`)
-      .attr("x", (d, i) => scaleX(i.toString())!)
+      //For each datum, create a rectangle along with attributes for it
+      initialBarData
+        .append("rect")
+        .attr("fill", (d) => d.color)
+        .attr("y", (d) => chartDimens.outerHeight)
+        .attr("height", (d) => 0 - chartDimens.paddingBlock)
+        .attr("width", xScale.bandwidth())
+        .attr("x", (_, i) => xScale(i.toString())!)
+        .attr("scaleY", (d) => `${yScale(d.value)}`)
+        .transition(trans)
+        .attr("height", (d) => yScale(d.value))
+        .attr(
+          "y",
+          (d) =>
+            chartDimens.paddingBlock +
+            chartDimens.innerHeight -
+            yScale(d.value),
+        );
+      return;
+    }
+
+    //Remove
+    //'exit()' returns or 'selects' elements which are currently rendered, but do not have corresponding data in the array. We remove these
+    barData
+      .exit()
+      .transition(trans2)
+      .attr("y", (d) => chartDimens.innerHeight)
+      .attr("height", (d) => chartDimens.paddingBlock)
+      .remove();
+
+    console.log("UPDATE");
+    //Update
+    //Recalculating attributes for bars since data has been changed.
+    barData
+      .transition(trans2)
+      .attr("height", (d) => yScale(d.value))
+      .attr("width", xScale.bandwidth())
+      .attr("scaleY", (d, i) => `${yScale(d.value)}`)
+      .attr("x", (d, i) => xScale(i.toString())!)
       .attr(
         "y",
         (d, i) =>
-          chartDimens.paddingBlock + chartDimens.innerHeight - scaleY(d),
-      )
-      .attr("fill", "black");
-  }
-  function sort() {
-    bubbleSort(data);
-    if (svgSelection) {
-      const selection = svgSelection.select("g").selectAll("rect").data(data);
-      selection
-        .attr("height", (d) => scaleY(d))
-        .attr("width", scaleX.bandwidth())
-        .attr("scaleY", (d, i) => `${scaleY(d)}`)
-        .attr("x", (d, i) => scaleX(i.toString())!)
-        .attr(
-          "y",
-          (d, i) =>
-            chartDimens.paddingBlock + chartDimens.innerHeight - scaleY(d),
-        );
-    }
-  }
-  function increment() {
-    const value = randomValue();
-    setData([...data, value]);
-    setGraphScaling();
-  }
-  function decrement() {
-    if (data.length > 1) {
-      const slicedData = data.slice(0, data.length - 1);
-      setData(slicedData);
-      setGraphScaling();
-    }
-  }
+          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
+      );
 
-  function updateGraph() {
-    //Null pointer check to satisfy typescript
-    if (svgSelection) {
-      //Define our joined data+elements
-      const barData = svgSelection.select("g").selectAll("rect").data(data);
+    //Add
+    //Append new rectangles for data that is orphaned.
+    //enter() returns the selection for data which exists but not displayed.
+    barData
+      .enter()
+      .append("rect")
+      .attr("fill", (d) => d.color)
+      .attr("x", (d, i) => xScale(i.toString())!)
+      .attr("y", (d) => chartDimens.outerHeight)
+      .attr("height", (d) => 0 - chartDimens.paddingBlock)
+      .attr("width", xScale.bandwidth())
+      .transition(trans2)
+      .attr("height", (d) => yScale(d.value))
+      .attr(
+        "y",
+        (d, i) =>
+          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
+      );
 
-      //Remove
-      //'exit()' returns or 'selects' elements which are currently rendered, but do not have corresponding data in the array. We remove these
-      barData.exit().remove();
-
-      //Update
-      //Recalculating attributes for bars since data has been changed.
-      barData
-        .attr("height", (d) => scaleY(d))
-        .attr("width", scaleX.bandwidth())
-        .attr("scaleY", (d, i) => `${scaleY(d)}`)
-        .attr("x", (d, i) => scaleX(i.toString())!)
-        .attr(
-          "y",
-          (d, i) =>
-            chartDimens.paddingBlock + chartDimens.innerHeight - scaleY(d),
-        );
-
-      //Add
-      //Append new rectangles for data that is orphaned.
-      //enter() returns the selection for data which exists but not displayed.
-      barData
-        .enter()
-        .append("rect")
-        .attr("height", (d) => scaleY(d))
-        .attr("width", scaleX.bandwidth())
-        .attr("scaleY", (d, i) => `${scaleY(d)}`)
-        .attr("x", (d, i) => scaleX(i.toString())!)
-        .attr(
-          "y",
-          (d, i) =>
-            chartDimens.paddingBlock + chartDimens.innerHeight - scaleY(d),
-        );
-    }
-  }
-
-  // Looks for change in data
-  useEffect(() => {
-    updateGraph();
+    // Recalculate Axis
+    svgSelection!.select<SVGSVGElement>("g.x-axis").call(xAxis);
   }, [data]);
 
-  useLayoutEffect(() => {
-    // Further details about d3 selections: https://bost.ocks.org/mike/join/
-    // if statement to statisfy Typescript
-    if (!svgSelection) {
-      // Define d3 svg selection using an element from the DOM
-      selectSVG(d3.select(svgRef.current));
-    } else {
-      createBars(svgSelection);
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = Number(e.target.value);
+    setSliderValue(value);
+  }
+
+  //changes the length of data according to slider value
+  const update = useCallback(() => {
+    //add a bar
+    if (sliderValue > data.length)
+      setData((currentData) => [
+        ...currentData,
+        {
+          value: randomValue(),
+          state: state.ROOT,
+          color: "white",
+        },
+      ]);
+    //remove a bar
+    else if (sliderValue < data.length) {
+      setData((prev) => [...prev.slice(0, sliderValue)]);
     }
-  }, [svgSelection]);
+  }, [sliderValue, data]);
+
+  //Syncronizing between sliderValue and size of data array
+  useEffect(() => {
+    // const debounceTimer = setTimeout(() => {
+    update();
+    // }, 10);
+    // return () => clearTimeout(debounceTimer);
+  }, [sliderValue, update]);
+
+  function sort() {
+    setData((prev) => bubbleSort(prev));
+    update();
+  }
 
   return (
     <section>
@@ -210,9 +222,22 @@ export default function Graph() {
         ref={svgRef}
         viewBox={`0 0 ${chartDimens.outerWidth} ${chartDimens.outerHeight}`}
       ></svg>
-      <button onClick={increment}>add</button>
-      <button onClick={decrement}>remove</button>
+      {/* <button onClick={addData}>add</button> */}
       <button onClick={sort}>sort</button>
+      {/* <button onClick={decrement}>remove</button> */}
+      {/* <button onClick={sort}>sort</button> */}
+      <label htmlFor="input">Data Size</label>
+      <br />
+      <input
+        list="markers"
+        id="input"
+        min={10}
+        max={50}
+        type="range"
+        value={sliderValue}
+        step={1}
+        onChange={handleChange}
+      ></input>
     </section>
   );
 }

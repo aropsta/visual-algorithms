@@ -1,14 +1,10 @@
 import React from "react";
 import "./styles/App.scss";
-import genArray, { bubbleSort } from "./logic/Algorithms";
 
-import CircleSVG from "./Components/CircleSVG";
-import NewCirc from "./Components/newCirc";
 import Graph from "./Components/Graph";
 
 // const array = Algorithms(9);
 //
-const data = genArray(100);
 
 function App() {
   return (

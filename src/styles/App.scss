@@ -16,7 +16,7 @@
 
 section {
   width: 100%;
-  height: 100%;
+  height: 80vh;
   display: flex;
   justify-content: space-around;
   flex-direction: column;
@@ -34,8 +34,7 @@ button {}
 
 
 .domain {
-  color: purple;
-  color: black;
+  color: pink;
 }
 
 .tick {
@@ -50,7 +49,9 @@ button {}
 }
 
 svg {
-  height: min(50%, 40rem);
+  height: max(50%, 40rem);
+  width: 80%;
+  background: firebrick;
 }
 
 .App-header {
