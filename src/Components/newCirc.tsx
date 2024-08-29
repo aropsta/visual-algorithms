@@ -1,8 +1,6 @@
 import * as d3 from "d3";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { select, selectAll } from "d3-selection";
-import { PieArcDatum } from "d3";
-import Algorithms from "../logic/Algorithms";
+import Algorithms from "../lib/Algorithms";
 import React from "react";
 let array = [234, 23, 126, 90, 121, 434, 23, 19, 159, 233];
 // const array = Algorithms(9);

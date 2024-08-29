@@ -1,10 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import genObj, { Bar, bubbleSort, gb, t } from "../lib/Algorithms";
-import { randomValue } from "../lib/utils";
+import { MutableRefObject, RefObject, useEffect, useState } from "react";
 import * as d3 from "d3";
+import genObj, { Bar } from "./Algorithms";
 
 //size of our SVG chart
-export enum chartDimens {
+export const enum chartDimens {
   paddingBlock = 16,
   paddingInline = 5,
 
@@ -18,21 +17,8 @@ export enum chartDimens {
   innerWidth = outerWidth - 2 * paddingInline,
 }
 
-export default function Graph() {
-  //Svg DOM reference and d3.select variables
-  const svgRef = useRef<SVGSVGElement>(null);
-
-  //The data array and size that is dynamically set by a slider
-  const minSize = 3;
-  const [sliderValue, setSliderValue] = useState(minSize);
-  const animation = useRef(false);
-  const [count, setCount] = useState(0);
-  const [data, setData] = useState<Bar[]>(genObj(minSize));
-
-  // const progRef = useRef<Generator<Bar[]> | null>(null);
-  const progRef = useRef<Generator<Bar[]> | null>(null);
-  const animRef = useRef<number | null>();
-  const prevTime = useRef(0);
+export default function useGraph(svgRef: RefObject<SVGSVGElement>) {
+  const [data, setData] = useState<Bar[]>(genObj(10));
 
   useEffect(() => {
     const svgSelection = d3.select(svgRef.current);
@@ -170,84 +156,7 @@ export default function Graph() {
 
     // Recalculate Axis
     svgSelection!.select<SVGSVGElement>("g.x-axis").call(xAxis);
-  }, [data]);
+  }, [data, svgRef]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = Number(e.target.value);
-    setSliderValue(value);
-  }
-
-  //Syncronizing between sliderValue and size of data array
-  useEffect(() => {
-    //add a bar
-    if (sliderValue > data.length)
-      setData((currentData) => [
-        ...currentData,
-        {
-          value: randomValue(0, 100),
-          state: "root",
-          color: "white",
-        },
-      ]);
-    //remove a bar
-    else if (sliderValue < data.length) {
-      setData((prev) => [...prev.slice(0, sliderValue)]);
-    }
-  }, [sliderValue, data]);
-
-  function sort() {
-    if (animRef.current) return;
-    progRef.current = t(data);
-    animation.current = true;
-    animRef.current = requestAnimationFrame(step);
-  }
-
-  //TODO: Keep an eye on this function incase it goes rogue!!
-  function step(time: number) {
-    console.log("step()");
-    if (!progRef.current) return;
-    let interval = time - prevTime.current;
-
-    if (interval > 1000) {
-      const { value, done } = progRef.current.next();
-      prevTime.current = time;
-
-      // setData([...value])
-      console.log("value: " + JSON.stringify(value) + " | done: " + done);
-
-      if (done) {
-        animation.current = false;
-        console.log("animation: " + animation.current);
-      }
-    }
-
-    if (animation.current) {
-      animRef.current = requestAnimationFrame(step);
-    }
-  }
-  return (
-    <section>
-      <div className={`${count % 2 === 0 ? "black" : "white"}`}>{count}</div>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${chartDimens.outerWidth} ${chartDimens.outerHeight}`}
-      ></svg>
-      {/* <button onClick={addData}>add</button> */}
-      <button onClick={sort}>sort</button>
-      {/* <button onClick={decrement}>remove</button> */}
-      {/* <button onClick={sort}>sort</button> */}
-      <label htmlFor="input">Data Size</label>
-      <br />
-      <input
-        list="markers"
-        id="input"
-        min={minSize}
-        max={50}
-        type="range"
-        value={sliderValue}
-        step={1}
-        onChange={handleChange}
-      ></input>
-    </section>
-  );
+  return [data, setData];
 }
