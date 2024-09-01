@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import genObj, { Bar, COLORS, bubbleSort } from "../lib/Algorithms";
+
+import genObj, { Bar, bubbleSort, COLORS, gb, t } from "../lib/Algorithms";
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
 
@@ -23,28 +24,21 @@ export default function Graph() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   //The data array and size that is dynamically set by a slider
-  const minSize = 10;
+  const minSize = 7;
+
+  const DELAY = 500;
   const [sliderValue, setSliderValue] = useState(minSize);
-
-  //conditional variable to dynamically set transitions/animations for d3 graph
-  const [newElement, setNewElement] = useState(false);
-
-  //rate of animation in ms and also used to time transition animations
-  const [speed, setSpeed] = useState(1000);
-
-  //our data
+  const [id, nextID] = useState(0);
   const [data, setData] = useState<Bar[]>(genObj(minSize));
 
-  //reference to *generator function. Used to progress it
-  const progRef = useRef<Generator<Bar[]> | null>(null);
-
-  //reference to track running of requestAnimationFrame() function
-  const animRef = useRef<number | null>();
   const prevTime = useRef(0);
+  const animRef = useRef<number | null>();
+  const progRef = useRef<Generator<Bar[]> | null>(null);
 
   useEffect(() => {
     const svgSelection = d3.select(svgRef.current);
-    const trans = d3.transition().duration(500).ease(d3.easeElastic);
+    const trans = d3.transition().duration(500).ease(d3.easeCubicIn);
+    const trans2 = d3.transition().ease(d3.easeCubicIn);
 
     const domainMax = d3.max(data.map((item) => item.value));
 
@@ -53,8 +47,7 @@ export default function Graph() {
     let yScale = d3
       .scaleLinear()
       .domain([0, domainMax!])
-      .range([chartDimens.paddingBlock, chartDimens.innerHeight])
-      .nice();
+      .range([chartDimens.paddingBlock, chartDimens.innerHeight]);
 
     //Band scales divide the domain of the data into uniform bands, then maps those to the range available to display it
     //https://d3js.org/d3-scale/band
@@ -74,8 +67,6 @@ export default function Graph() {
       .tickFormat((d, i) => (i % 1 === 0 ? i.toString() : ""));
     // const yAxis = d3.axisBottom(yScale);
 
-    //Define our joined data+elements
-    const barData = svgSelection.select(".group").selectAll("rect").data(data);
     // If there is no group/graph, create a new one
     if (svgSelection.select(".group").empty()) {
       // Appending a group for our x-axis to our selection, also positioning it at the same time
@@ -103,26 +94,25 @@ export default function Graph() {
 
       //Begin by appending a group for better management of individual bars
       //'select' all proceeding rectangles and asscociate them with a given array of data.
-      //For more information about d3 data joins:
-      //https://d3js.org/d3-selection/joining
+      //For more information about d3 data joins: https://d3js.org/d3-selection/joining
       const initialBarData = svgSelection
         .append("g")
         .attr("class", "group")
         .selectAll("rect")
-        .data(data)
+        .data(data, (d: any) => d.id)
         .enter();
 
       //For each datum, create a rectangle along with attributes for it
       initialBarData
         .append("rect")
+        .attr("id", (d) => d.id)
         .attr("fill", (d) => d.color)
         .attr("y", (d) => chartDimens.outerHeight)
         .attr("height", (d) => 0 - chartDimens.paddingBlock)
         .attr("width", xScale.bandwidth())
-        .attr("x", (_, i) => xScale(i.toString())!)
-        .transition()
-        .duration(500)
-        .ease(d3.easeElastic)
+        .attr("x", (d, i) => xScale(d.id.toString())! ?? xScale(i.toString())!)
+        // .attr("scaleY", (d) => `${yScale(d.value)}`)
+        .transition(trans)
         .attr("height", (d) => yScale(d.value))
         .attr(
           "y",
@@ -134,92 +124,75 @@ export default function Graph() {
       return;
     }
 
+    //Define our joined data+elements
+    const barData = svgSelection
+      .select(".group")
+      .selectAll("rect")
+      .data(data, (d: any) => d.id);
     //Remove
     //'exit()' returns or 'selects' elements which are currently rendered, but do not have corresponding data in the array. We remove these
     barData
       .exit()
-      .transition()
-      .attr("y", (d) => chartDimens.innerHeight + chartDimens.paddingBlock)
-      .attr("height", (d: any, i) => 0)
+      .transition(trans2)
+      .attr("y", (d) => chartDimens.innerHeight)
+      .attr("height", (d) => chartDimens.paddingBlock)
       .remove();
 
     //Update
     //Recalculating attributes for bars since data has been changed.
-
-    //Conditionally set animation transitions if update is caused from a new element being added or not. Prevents the transitions from conflicting
-    if (newElement) {
-      barData
-        .attr("fill", (d) => d.color)
-        .transition()
-        .duration(speed)
-        .attr("width", xScale.bandwidth())
-        .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
-        .attr("height", (d) => yScale(d.value))
-        .attr(
-          "y",
-          (d, i) =>
-            chartDimens.paddingBlock +
-            chartDimens.innerHeight -
-            yScale(d.value),
-        );
-      setNewElement(false);
-    } else {
-      barData
-        .attr("fill", (d) => d.color)
-        .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
-
-        .attr("height", (d) => yScale(d.value))
-        .attr(
-          "y",
-          (d, i) =>
-            chartDimens.paddingBlock +
-            chartDimens.innerHeight -
-            yScale(d.value),
-        )
-        .transition()
-        .duration(speed)
-        .attr("width", xScale.bandwidth())
-        .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!);
-    }
+    console.log("UPDATE: ");
+    barData
+      .attr("id", (d) => d.id)
+      .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? d.id.toString())!)
+      .attr(
+        "y",
+        (d, i) =>
+          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
+      )
+      .transition(trans2)
+      .attr("height", (d) => yScale(d.value))
+      .attr("fill", (d) => d.color)
+      .attr("height", (d) => yScale(d.value))
+      .attr("width", xScale.bandwidth())
+      // .attr("x", (d, i) => xScale(i.toString())!)
+      .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? d.id.toString())!)
+      .attr(
+        "y",
+        (d, i) =>
+          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
+      );
 
     //Add
-    //Append new a rectangle for data that is orphaned.
+    //Append new rectangles for data that is orphaned.
     //enter() returns the selection for data which exists but not displayed.
     barData
       .enter()
       .append("rect")
-      .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
-      .attr("y", (d) => chartDimens.innerHeight + chartDimens.paddingBlock)
-      .attr("height", (d) => 0)
-      .attr("width", xScale.bandwidth())
-      .transition()
-      .duration(speed)
-      .delay(speed / 2)
-      .ease(d3.easeElastic.period(0.99))
+      .attr("id", (d) => d.id)
+      .attr("x", (d, i) => xScale(d.id.toString())!)
+      // .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? d.id.toString())!)
       .attr("y", (d) => chartDimens.outerHeight)
-      .attr("height", (d) => 0 - chartDimens.paddingBlock)
       .attr("fill", (d) => d.color)
+      .attr("height", (d) => 0 - chartDimens.paddingBlock)
+      .attr("width", xScale.bandwidth())
+      .transition(trans2)
       .attr("height", (d) => yScale(d.value))
       .attr(
         "y",
         (d, i) =>
           chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
       );
+
     // Recalculate Axis
-    svgSelection!.select<SVGSVGElement>(".x-axis").call(xAxis);
+    svgSelection!.select<SVGSVGElement>("g.x-axis").call(xAxis);
   }, [data]);
 
-  function handleSize(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
     setSliderValue(value);
-    setNewElement(true);
-  }
-  function handleSpeed(e: React.ChangeEvent<HTMLInputElement>) {
-    const value = Number(e.target.value);
-    setSpeed(value);
   }
 
-  //Syncronization between sliderValue and size of data array
+  //Syncronizing between sliderValue and size of data array
   useEffect(() => {
     //add a bar
     if (sliderValue > data.length)
@@ -228,8 +201,7 @@ export default function Graph() {
         {
           value: randomValue(0, 100),
           id: currentData.length + 1,
-          color: COLORS.CONTROL,
-          type: "none",
+          color: "white",
         },
       ]);
     //remove a bar
@@ -245,45 +217,35 @@ export default function Graph() {
     });
   }
 
-  //begin the sorting algorithm
-  function onSort() {
-    //reset colours if button is clicked.
+  function sort() {
     resetColors();
-
-    //logic to pause/start generator function
     if (animRef.current) animRef.current = null;
     else {
-      //begin generator function and assign it a ref
-      progRef.current = bubbleSort(data);
-      //begin generator animation/cadence of the function
-      animRef.current = requestAnimationFrame(stepFunction);
+      progRef.current = gb(data);
+      animRef.current = requestAnimationFrame(step);
     }
   }
 
-  //Used to progress the *gen function at a constant rate
-  function stepFunction(time: number) {
+  function step(time: number) {
     let interval = time - prevTime.current;
 
-    //if time interval has passed, return to/call gen Function
-    if (interval > speed) {
-      //assign to variable the yielded values from gen function
+    if (interval > DELAY) {
       const { value, done } = progRef.current!.next();
       prevTime.current = time;
 
-      //once done, cancel animations and set its reference to null (so that it can be restarted again) otherwise set the data to whatever was yielded
-      //
+      // setData([...value])
+      // console.log("value: " + JSON.stringify(value) + " | done: " + done);
+
       if (done) {
         cancelAnimationFrame(animRef.current!);
         animRef.current = null;
       } else setData(value);
     }
 
-    // continue animation so long as reference is not null. requestAnimationFrame would run at device refresh rate
     if (animRef.current) {
-      animRef.current = requestAnimationFrame(stepFunction);
+      animRef.current = requestAnimationFrame(step);
     }
   }
-
   return (
     <section>
       <svg
@@ -291,12 +253,11 @@ export default function Graph() {
         viewBox={`0 0 ${chartDimens.outerWidth} ${chartDimens.outerHeight}`}
       ></svg>
       {/* <button onClick={addData}>add</button> */}
-      <button onClick={onSort}>sort</button>
+      <button onClick={sort}>sort</button>
       {/* <button onClick={decrement}>remove</button> */}
       {/* <button onClick={sort}>sort</button> */}
-      <label htmlFor="input">Data Size: {sliderValue}</label>
+      <label htmlFor="input">Data Size</label>
       <br />
-      {/* TODO: disable inputs when algo is running */}
       <input
         list="markers"
         id="input"
@@ -305,20 +266,7 @@ export default function Graph() {
         type="range"
         value={sliderValue}
         step={1}
-        onChange={handleSize}
-      ></input>
-      <label htmlFor="input">Speed: {speed}</label>
-      <br />
-      {/* TODO: disable inputs when algo is running */}
-      <input
-        list="markers"
-        id="input2"
-        min={10}
-        max={2000}
-        type="range"
-        value={speed}
-        step={1}
-        onChange={handleSpeed}
+        onChange={handleChange}
       ></input>
     </section>
   );

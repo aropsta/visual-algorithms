@@ -59,13 +59,14 @@ button {}
   text {
 
     font-size: 5px;
+    display: none
   }
 }
 
 svg {
   height: max(50%, 40rem);
   width: 80%;
-  background: firebrick;
+  background: black;
 }
 
 .App-header {
