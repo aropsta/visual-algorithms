@@ -27,10 +27,12 @@ export default function Graph() {
   const [sliderValue, setSliderValue] = useState(minSize);
 
   //conditional variable to dynamically set transitions/animations for d3 graph
-  const [newElement, setNewElement] = useState(false);
+  const newElement = useRef(false);
 
   //rate of animation in ms and also used to time transition animations
-  const [speed, setSpeed] = useState(1000);
+  const speedRef = useRef(300);
+  //value of speed slider
+  const [rate, setRate] = useState(300);
 
   //our data
   const [data, setData] = useState<Bar[]>(genObj(minSize));
@@ -44,8 +46,6 @@ export default function Graph() {
 
   useEffect(() => {
     const svgSelection = d3.select(svgRef.current);
-    const trans = d3.transition().duration(500).ease(d3.easeElastic);
-
     const domainMax = d3.max(data.map((item) => item.value));
 
     //Scale the domain of the data into a given range available for displaying it
@@ -72,10 +72,13 @@ export default function Graph() {
       .axisBottom(xScale)
       .tickSizeInner(3)
       .tickFormat((d, i) => (i % 1 === 0 ? i.toString() : ""));
+
+    //y-axis unused
     // const yAxis = d3.axisBottom(yScale);
 
     //Define our joined data+elements
     const barData = svgSelection.select(".group").selectAll("rect").data(data);
+
     // If there is no group/graph, create a new one
     if (svgSelection.select(".group").empty()) {
       // Appending a group for our x-axis to our selection, also positioning it at the same time
@@ -110,16 +113,23 @@ export default function Graph() {
         .attr("class", "group")
         .selectAll("rect")
         .data(data)
-        .enter();
+        .enter()
 
-      //For each datum, create a rectangle along with attributes for it
-      initialBarData
+        //For each datum, create a rectangle along with attributes for it
         .append("rect")
         .attr("fill", (d) => d.color)
         .attr("y", (d) => chartDimens.outerHeight)
         .attr("height", (d) => 0 - chartDimens.paddingBlock)
         .attr("width", xScale.bandwidth())
-        .attr("x", (_, i) => xScale(i.toString())!)
+        .attr("x", (_, i) => xScale(i.toString())!);
+
+      //tooltip to show values on hover
+      initialBarData
+        .append("title")
+        .attr("fill", "black")
+        .text((d) => d.value.toString());
+
+      initialBarData
         .transition()
         .duration(500)
         .ease(d3.easeElastic)
@@ -151,7 +161,8 @@ export default function Graph() {
       barData
         .attr("fill", (d) => d.color)
         .transition()
-        .duration(speed)
+        .duration(speedRef.current / 2)
+        .delay(speedRef.current / 2)
         .attr("width", xScale.bandwidth())
         .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
         .attr("height", (d) => yScale(d.value))
@@ -162,7 +173,7 @@ export default function Graph() {
             chartDimens.innerHeight -
             yScale(d.value),
         );
-      setNewElement(false);
+      newElement.current = false;
     } else {
       barData
         .attr("fill", (d) => d.color)
@@ -177,7 +188,7 @@ export default function Graph() {
             yScale(d.value),
         )
         .transition()
-        .duration(speed)
+        .duration(speedRef.current)
         .attr("width", xScale.bandwidth())
         .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!);
     }
@@ -193,8 +204,8 @@ export default function Graph() {
       .attr("height", (d) => 0)
       .attr("width", xScale.bandwidth())
       .transition()
-      .duration(speed)
-      .delay(speed / 2)
+      .duration(speedRef.current / 2)
+      .delay(speedRef.current / 2)
       .ease(d3.easeElastic.period(0.99))
       .attr("y", (d) => chartDimens.outerHeight)
       .attr("height", (d) => 0 - chartDimens.paddingBlock)
@@ -212,17 +223,20 @@ export default function Graph() {
   function handleSize(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
     setSliderValue(value);
-    setNewElement(true);
+    newElement.current = false;
   }
   function handleSpeed(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
-    setSpeed(value);
+    speedRef.current = value;
+    setRate(speedRef.current);
   }
 
   //Syncronization between sliderValue and size of data array
   useEffect(() => {
     //add a bar
-    if (sliderValue > data.length)
+    if (sliderValue > data.length) {
+      newElement.current = true;
+
       setData((currentData) => [
         ...currentData,
         {
@@ -232,8 +246,10 @@ export default function Graph() {
           type: "none",
         },
       ]);
+    }
     //remove a bar
     else if (sliderValue < data.length) {
+      newElement.current = true;
       setData((prev) => [...prev.slice(0, sliderValue)]);
     }
   }, [sliderValue, data]);
@@ -260,12 +276,14 @@ export default function Graph() {
     }
   }
 
+  function tempSort() {}
+
   //Used to progress the *gen function at a constant rate
   function stepFunction(time: number) {
     let interval = time - prevTime.current;
 
     //if time interval has passed, return to/call gen Function
-    if (interval > speed) {
+    if (interval > speedRef.current) {
       //assign to variable the yielded values from gen function
       const { value, done } = progRef.current!.next();
       prevTime.current = time;
@@ -307,17 +325,17 @@ export default function Graph() {
         step={1}
         onChange={handleSize}
       ></input>
-      <label htmlFor="input">Speed: {speed}</label>
+      <label htmlFor="input">Speed: {rate}</label>
       <br />
       {/* TODO: disable inputs when algo is running */}
       <input
         list="markers"
         id="input2"
         min={10}
-        max={2000}
+        max={2010}
         type="range"
-        value={speed}
-        step={1}
+        value={rate}
+        step={50}
         onChange={handleSpeed}
       ></input>
     </section>

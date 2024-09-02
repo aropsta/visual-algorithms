@@ -8,11 +8,11 @@ export interface Bar {
 }
 
 export enum COLORS {
-  PRIMARY = "blue",
-  SECONDARY = "grey",
+  PRIMARY = "mediumblue",
+  SECONDARY = "silver",
   CONTROL = "white",
-  SORTED = "green",
-  NOCHANGE = "yellow",
+  SORTED = "springgreen",
+  NOCHANGE = "black",
 }
 
 //generating our data
@@ -29,7 +29,6 @@ export default function genObj(max: number): Bar[] {
 
 export function bubbleSortBare(array: Bar[]) {
   for (let j = 0; j < array.length; j++) {
-    array[j].color = "red";
     let swapped = false; //optimization: check if a swap operation has occured, if not, then value is in its correct place and can exit inner loop
 
     for (let i = 0; i < array.length - 1 - j; i++) {
@@ -45,7 +44,6 @@ export function bubbleSortBare(array: Bar[]) {
   }
   return array;
 }
-
 export function* bubbleSort(arr: Bar[]) {
   for (let j = 0; j < arr.length; j++) {
     let swapped = false; //optimization: check if a swap operation has occured, if not, then value is in its correct place and can exit inner loop
@@ -96,4 +94,22 @@ export function* bubbleSort(arr: Bar[]) {
   }
 
   yield [...arr];
+}
+
+export function selectionSort(arr: Bar[]) {
+  let min;
+  for (let i = 0; i < arr.length - 1; i++) {
+    min = i;
+
+    for (let j = i + 1; j < arr.length; j++) {
+      if (arr[j].value < arr[i].value) {
+        min = j;
+      }
+    }
+    const temp = arr[i].value;
+    arr[i].value = arr[min].value;
+    arr[min].value = temp;
+  }
+
+  return [...arr];
 }
