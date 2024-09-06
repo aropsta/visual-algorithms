@@ -28,7 +28,7 @@ div {
   }
 }
 
-section {
+main {
   width: 100%;
   height: 80vh;
   display: flex;
@@ -41,21 +41,131 @@ section {
 
 
 
-.rect {}
+.controls {
+  display: flex;
+  flex-direction: column;
+  background: hsl(220, 13, 25, 1);
+  padding: 1rem;
+  width: min(80%, 30rem)
+}
+
+.algo {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+  padding-block: 2rem;
+  padding-inline: 10rem;
+}
+
+label {
+  font-size: 1rem;
+}
+
+select {
+  font-size: 1.5rem;
+  border: none;
+  font-weight: bold;
+  padding-inline: 5px;
+  box-shadow: 2px 2px 3px 1px #BF2f2f;
+
+  &::after {
+    width: 16px
+  }
+}
 
 
-button {}
+button {
+  font-size: 1rem;
+  text-decoration: none;
+  font-weight: 600;
+  border-radius: 5px;
+  color: white;
+  background-color: firebrick;
+  padding-inline: 1rem;
+  padding-block: 0.8rem;
+  box-shadow: 0;
+  border: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: hsl(0, 68, 30, 1)
+  }
+
+  &:disabled {
+
+    background-color: hsl(0, 68, 10, 1);
+    color: grey;
+    cursor: default;
+  }
+}
+
+input[type=range] {
+  height: 2rem;
+  width: 100%;
+  background: none;
+
+
+  &:disabled {
+    &.slider {
+      display: none;
+    }
+
+    &::-moz-range-thumb {
+
+      background: hsl(0, 68, 10, 1);
+      cursor: default;
+      color: black;
+    }
+
+    &::-moz-range-track {
+
+      background: grey;
+      cursor: default;
+    }
+  }
+}
+
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 5px;
+  cursor: pointer;
+  background: #fFFFFF;
+}
+
+input[type=range]::-moz-range-thumb {
+  border: 1px solid hsl(0, 68, 30, 1);
+  height: 30px;
+  width: 1rem;
+  border-radius: 0px;
+  background: firebrick;
+  cursor: pointer;
+
+}
 
 
 .domain {
   color: pink;
 }
 
+.buttons {
+  display: flex;
+  gap: 2rem;
+  align-self: center;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
 .tick {
-
-
-  line {}
-
   text {
 
     font-size: 5px;
@@ -63,9 +173,15 @@ button {}
   }
 }
 
+.white {
+  background-color: white;
+  color: black;
+}
+
+
 svg {
   height: max(50%, 40rem);
-  width: 80%;
+  width: min(90%, 80vw);
   background: firebrick;
 }
 
@@ -82,14 +198,4 @@ svg {
 
 .App-link {
   color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
 }

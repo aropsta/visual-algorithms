@@ -20,11 +20,41 @@ export default function genObj(max: number): Bar[] {
   let array: Bar[] = [];
   for (let i = 0; i < max; i++) {
     array.push({
-      value: randomValue(0, 100),
+      value: randomValue(1, 100),
       color: "white",
     });
   }
   return array;
+  // return [
+  //   {
+  //     value: 1,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 58,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 26,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 100,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 2,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 5,
+  //     color: "black",
+  //   },
+  //   {
+  //     value: 11,
+  //     color: "black",
+  //   },
+  // ];
 }
 
 export function bubbleSortBare(array: Bar[]) {

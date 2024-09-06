@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import genObj, { Bar, COLORS, bubbleSort } from "../lib/Algorithms";
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
@@ -8,7 +8,7 @@ export enum chartDimens {
   paddingBlock = 16,
   paddingInline = 5,
 
-  outerWidth = 440,
+  outerWidth = 300,
   outerHeight = 210,
 
   minWidth = 0,
@@ -23,28 +23,27 @@ export default function Graph() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   //The data array and size that is dynamically set by a slider
-  const minSize = 10;
+  const minSize = 3;
   const [sliderValue, setSliderValue] = useState(minSize);
-  //value of speed slider
-  const [rate, setRate] = useState(300);
 
   //conditional variable to dynamically set transitions/animations for d3 graph
+  // const [newElement, setNewElement] = useState(false);
   const newElement = useRef(false);
 
   //rate of animation in ms and also used to time transition animations
   const speedRef = useRef(300);
+  //value of speed slider
+  const [rate, setRate] = useState(300);
 
   //our data
   const [data, setData] = useState<Bar[]>(genObj(minSize));
 
   //reference to *generator function. Used to progress it
   const progRef = useRef<Generator<Bar[]> | null>(null);
+
   //reference to track running of requestAnimationFrame() function
   const animRef = useRef<number | null>();
   const prevTime = useRef(0);
-
-  const algorithmList = ["Bubble Sort", "Selection Sort"];
-  const algorithm = useRef("bubble");
 
   const updateGraph = useCallback(() => {
     const svgSelection = d3.select(svgRef.current);
@@ -111,6 +110,7 @@ export default function Graph() {
         .append("g")
         .attr("class", "group")
         .selectAll("g")
+
         .data(data)
         .enter()
 
@@ -124,6 +124,7 @@ export default function Graph() {
         .attr("height", (d) => 0 - chartDimens.paddingBlock)
         .attr("width", xScale.bandwidth())
         .attr("x", (_, i) => xScale(i.toString())!)
+
         .transition()
         .duration(500)
         .ease(d3.easeElastic)
@@ -142,26 +143,63 @@ export default function Graph() {
       return;
     }
     //Define our joined data+elements
-    const barData = svgSelection.select(".group").selectAll(".bar").data(data);
+    const barGroup = svgSelection
+      .select(".group")
+      .selectAll<SVGGElement, Bar>(".bar")
+      .data(data, (d) => d.id.toString());
+
     //Remove
     //'exit()' returns or 'selects' elements which are currently rendered, but do not have corresponding data in the array. We remove these
-
-    barData
+    barGroup
       .exit()
-
+      .transition()
+      .select("rect")
+      .attr("y", (d) => chartDimens.innerHeight + chartDimens.paddingBlock)
+      .attr("height", (d: any, i) => 0)
       .remove();
+    barGroup.exit().transition().remove();
+
+    //Add
+    //Append new a rectangle for data that is orphaned.
+    //enter() returns the selection for data which exists but not displayed.
+    const enterBars = barGroup.enter().append("g").attr("class", "bar");
+    enterBars
+      .append("rect")
+
+      .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
+      .attr("y", (d) => chartDimens.innerHeight + chartDimens.paddingBlock)
+      .attr("height", (d) => 0)
+      .attr("width", xScale.bandwidth())
+      .transition()
+      .duration(speedRef.current / 2)
+      .delay(speedRef.current / 2)
+      .ease(d3.easeElastic.period(0.99))
+      .attr("y", (d) => chartDimens.outerHeight)
+      .attr("fill", (d) => d.color)
+      .attr("height", (d) => yScale(d.value))
+      .attr(
+        "y",
+        (d, i) =>
+          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
+      );
+
+    enterBars
+      .append("title")
+      .attr("fill", "black")
+      .text((d) => d.value.toString());
 
     //Update
     //Recalculating attributes for bars since data has been changed.
 
+    const updateBars = enterBars.merge(barGroup);
     //Conditionally set animation transitions if update is caused from a new element being added or not. Prevents the transitions from conflicting
     if (newElement.current) {
+      const barData = barGroup.select("rect").data(data);
+
       barData
-        .select("rect")
         .attr("fill", (d) => d.color)
-        //tooltip to show values on hover
         .transition()
-        .duration(speedRef.current / 2)
+        .duration(speedRef.current)
         .attr("width", xScale.bandwidth())
         .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
         .attr("height", (d) => yScale(d.value))
@@ -172,13 +210,13 @@ export default function Graph() {
             chartDimens.innerHeight -
             yScale(d.value),
         );
-      barData.select("title").text((d) => d.value);
 
       // setNewElement(false);
       newElement.current = false;
     } else {
+      console.log("Update");
+      const barData = barGroup.select("rect").data(data);
       barData
-        .select("rect")
         .attr("fill", (d) => d.color)
         .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
 
@@ -194,61 +232,75 @@ export default function Graph() {
         .duration(speedRef.current)
         .attr("width", xScale.bandwidth())
         .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!);
-      barData.select("title").text((d) => d.value);
     }
 
-    //Add
-    //Append new a rectangle for data that is orphaned.
-    //enter() returns the selection for data which exists but not displayed.
-    const newGroup = barData.enter().append("g").attr("class", "bar");
+    //Conditionally set animation transitions if update is caused from a new element being added or not. Prevents the transitions from conflicting
+    if (newElement.current) {
+      updateBars
+        .select("rect")
+        .attr("fill", (d) => d.color)
+        .transition()
+        .duration(speedRef.current)
+        .attr("width", xScale.bandwidth())
+        .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
+        .attr("height", (d) => yScale(d.value))
+        .attr(
+          "y",
+          (d, i) =>
+            chartDimens.paddingBlock +
+            chartDimens.innerHeight -
+            yScale(d.value),
+        );
+      updateBars.select("title").text((d) => d.value.toString());
 
-    newGroup
-      .append("rect")
-      .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
-      .attr("y", (d) => chartDimens.innerHeight + chartDimens.paddingBlock)
-      .attr("height", (d) => 0)
-      .attr("width", xScale.bandwidth())
-      .transition()
-      .duration(speedRef.current / 2)
-      .ease(d3.easeElastic.period(0.99))
-      .attr("y", (d) => chartDimens.outerHeight)
-      .attr("height", (d) => 0 - chartDimens.paddingBlock)
-      .attr("fill", (d) => d.color)
-      .attr("height", (d) => yScale(d.value))
-      .attr(
-        "y",
-        (d, i) =>
-          chartDimens.paddingBlock + chartDimens.innerHeight - yScale(d.value),
-      );
-    newGroup.append("title").text((d) => d.value);
+      // setNewElement(false);
+      newElement.current = false;
+    } else {
+      updateBars
+        .attr("fill", (d) => d.color)
+        .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
 
-    svgSelection!.select<SVGSVGElement>(".x-axis").call(xAxis);
+        .attr("height", (d) => yScale(d.value))
+        .attr(
+          "y",
+          (d, i) =>
+            chartDimens.paddingBlock +
+            chartDimens.innerHeight -
+            yScale(d.value),
+        )
+        .transition()
+        .duration(speedRef.current)
+        .attr("width", xScale.bandwidth())
+        .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!);
+      updateBars.select("title").text((d) => d.value.toString());
+    }
   }, [data]);
 
   useEffect(() => {
     updateGraph();
   }, [updateGraph]);
-
   function handleSize(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
     setSliderValue(value);
-    // setNewElement(true);
-    newElement.current = true;
   }
-
   function handleSpeed(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
     speedRef.current = value;
     setRate(speedRef.current);
   }
+
   //Syncronization between sliderValue and size of data array
   useEffect(() => {
     //add a bar
     if (sliderValue > data.length) {
+      // setNewElement(true);
+      newElement.current = true;
+
       setData((currentData) => [
         ...currentData,
         {
-          value: randomValue(1, 100),
+          value: randomValue(0, 100),
+          id: Date.now(),
           color: COLORS.CONTROL,
           type: "none",
         },
@@ -256,6 +308,8 @@ export default function Graph() {
     }
     //remove a bar
     else if (sliderValue < data.length) {
+      // setNewElement(true);
+      newElement.current = true;
       setData((prev) => [...prev.slice(0, sliderValue)]);
     }
   }, [sliderValue, data]);
@@ -276,16 +330,7 @@ export default function Graph() {
     if (animRef.current) animRef.current = null;
     else {
       //begin generator function and assign it a ref
-      switch (algorithm.current) {
-        case algorithmList[0]:
-          progRef.current = bubbleSort(data);
-          break;
-        case algorithmList[1]:
-          // progRef.current = selectionSort(data);
-          break;
-        default:
-          progRef.current = bubbleSort(data);
-      }
+      progRef.current = bubbleSort(data);
       //begin generator animation/cadence of the function
       animRef.current = requestAnimationFrame(stepFunction);
     }
@@ -306,7 +351,6 @@ export default function Graph() {
       if (done) {
         cancelAnimationFrame(animRef.current!);
         animRef.current = null;
-        setData([...data]);
       } else setData(value);
     }
 
@@ -315,85 +359,43 @@ export default function Graph() {
       animRef.current = requestAnimationFrame(stepFunction);
     }
   }
-  function shuffle() {
-    setData(genObj(sliderValue));
-  }
-  function selectorChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const value = e.target.value;
-    algorithm.current = value;
-    console.log(value);
-  }
 
   return (
-    <main>
+    <section>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${chartDimens.outerWidth} ${chartDimens.outerHeight}`}
       ></svg>
-      <section className="algo">
-        <select
-          disabled={animRef.current ? true : false}
-          onChange={selectorChange}
-          name="algorithms"
-        >
-          {algorithmList.map((algo, index) => (
-            <option key={index} value={algo}>
-              {algo}
-            </option>
-          ))}
-        </select>
-      </section>
-      <section className="container">
-        <section className="buttons">
-          <button disabled={animRef.current ? true : false} onClick={shuffle}>
-            Shuffle
-          </button>
-          <button
-            onClick={onSort}
-            className={`${animRef.current ? "white" : ""}`}
-          >
-            {`${animRef.current ? "STOP" : "Sort"}`}
-          </button>
-        </section>
-        <section className="controls">
-          <label className="slider" htmlFor="slider">
-            Sample: {sliderValue}
-          </label>
-          <input
-            disabled={animRef.current ? true : false}
-            list="markers"
-            id="slider"
-            min={minSize}
-            max={50}
-            type="range"
-            value={sliderValue}
-            step={1}
-            onChange={handleSize}
-          ></input>
-          <label htmlFor="input-speed">
-            Delay: {rate}ms
-            <input
-              list="values"
-              id="input-speed"
-              min={0}
-              max={1500}
-              type="range"
-              value={rate}
-              step={10}
-              onChange={handleSpeed}
-            ></input>
-          </label>
-          <datalist id="values">
-            <option value="300"></option>
-            <option value="600"></option>
-            <option value="900"></option>
-            <option value="1200"></option>
-            <option value="1500"></option>
-          </datalist>
-        </section>
-      </section>
+      {/* <button onClick={addData}>add</button> */}
+      <button onClick={onSort}>sort</button>
       {/* <button onClick={decrement}>remove</button> */}
       {/* <button onClick={sort}>sort</button> */}
-    </main>
+      <label htmlFor="input">Data Size: {sliderValue}</label>
+      <br />
+      {/* TODO: disable inputs when algo is running */}
+      <input
+        list="markers"
+        id="input"
+        min={minSize}
+        max={50}
+        type="range"
+        value={sliderValue}
+        step={1}
+        onChange={handleSize}
+      ></input>
+      <label htmlFor="input">Speed: {rate}</label>
+      <br />
+      {/* TODO: disable inputs when algo is running */}
+      <input
+        list="markers"
+        id="input2"
+        min={10}
+        max={2010}
+        type="range"
+        value={rate}
+        step={50}
+        onChange={handleSpeed}
+      ></input>
+    </section>
   );
 }
