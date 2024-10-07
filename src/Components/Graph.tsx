@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import genObj, { Bar, COLORS, bubbleSort } from "../lib/Algorithms";
+import genObj, {
+  Bar,
+  COLORS,
+  bubbleSort,
+  selectionSort,
+} from "../lib/Algorithms";
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
+import "../styles/App.scss";
 
 //size of our SVG chart
 export enum chartDimens {
@@ -23,7 +29,7 @@ export default function Graph() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   //The data array and size that is dynamically set by a slider
-  const minSize = 10;
+  const minSize = 6;
   const [sliderValue, setSliderValue] = useState(minSize);
   //value of speed slider
   const [rate, setRate] = useState(300);
@@ -39,12 +45,13 @@ export default function Graph() {
 
   //reference to *generator function. Used to progress it
   const progRef = useRef<Generator<Bar[]> | null>(null);
+
   //reference to track running of requestAnimationFrame() function
   const animRef = useRef<number | null>();
   const prevTime = useRef(0);
 
-  const algorithmList = ["Bubble Sort", "Selection Sort"];
-  const algorithm = useRef("bubble");
+  const algorithmList: string[] = ["Bubble", "Selection"];
+  const [currentAlgorithm, setAlgorithm] = useState("Selection");
 
   const updateGraph = useCallback(() => {
     const svgSelection = d3.select(svgRef.current);
@@ -269,6 +276,7 @@ export default function Graph() {
 
   //begin the sorting algorithm
   function onSort() {
+    console.log("onSort()", data);
     //reset colours if button is clicked.
     resetColors();
 
@@ -276,12 +284,12 @@ export default function Graph() {
     if (animRef.current) animRef.current = null;
     else {
       //begin generator function and assign it a ref
-      switch (algorithm.current) {
+      switch (currentAlgorithm) {
         case algorithmList[0]:
           progRef.current = bubbleSort(data);
           break;
         case algorithmList[1]:
-          // progRef.current = selectionSort(data);
+          progRef.current = selectionSort(data);
           break;
         default:
           progRef.current = bubbleSort(data);
@@ -297,7 +305,7 @@ export default function Graph() {
 
     //if time interval has passed, return to/call gen Function
     if (interval > speedRef.current) {
-      //assign to variable the yielded values from gen function
+      //assign the yielded values from gen function to variables
       const { value, done } = progRef.current!.next();
       prevTime.current = time;
 
@@ -320,8 +328,7 @@ export default function Graph() {
   }
   function selectorChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value;
-    algorithm.current = value;
-    console.log(value);
+    setAlgorithm(value);
   }
 
   return (
@@ -333,31 +340,37 @@ export default function Graph() {
       <section className="algo">
         <select
           disabled={animRef.current ? true : false}
+          defaultValue={currentAlgorithm}
+          className={animRef.current ? "disabled" : ""}
           onChange={selectorChange}
           name="algorithms"
         >
           {algorithmList.map((algo, index) => (
             <option key={index} value={algo}>
-              {algo}
+              {algo} Sort
             </option>
           ))}
         </select>
       </section>
       <section className="container">
         <section className="buttons">
-          <button disabled={animRef.current ? true : false} onClick={shuffle}>
+          <button
+            disabled={animRef.current ? true : false}
+            onClick={shuffle}
+            className={animRef.current ? "disabled" : ""}
+          >
             Shuffle
           </button>
           <button
             onClick={onSort}
             className={`${animRef.current ? "white" : ""}`}
           >
-            {`${animRef.current ? "STOP" : "Sort"}`}
+            {`${animRef.current ? "STOP" : "SORT!"}`}
           </button>
         </section>
         <section className="controls">
           <label className="slider" htmlFor="slider">
-            Sample: {sliderValue}
+            Sample Size: {sliderValue}
           </label>
           <input
             disabled={animRef.current ? true : false}

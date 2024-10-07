@@ -9,6 +9,14 @@ div {
 
 }
 
+.disabled {
+  cursor: wait
+}
+
+h1 {
+  font-size: 2rem;
+}
+
 .black {
   color: white;
 }
@@ -75,6 +83,11 @@ select {
   }
 }
 
+p {
+  font-size: 1rem;
+  margin-block: 1rem;
+}
+
 
 button {
   font-size: 1rem;
@@ -97,7 +110,7 @@ button {
 
     background-color: hsl(0, 68, 10, 1);
     color: grey;
-    cursor: default;
+    cursor: wait;
   }
 }
 

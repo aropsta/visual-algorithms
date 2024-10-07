@@ -1,3 +1,4 @@
+import delay from "delay";
 import { randomValue } from "./utils";
 
 export interface Bar {
@@ -21,10 +22,36 @@ export default function genObj(max: number): Bar[] {
   for (let i = 0; i < max; i++) {
     array.push({
       value: randomValue(1, 100),
-      color: "white",
+      color: COLORS.CONTROL,
     });
   }
-  return array;
+  // return array;
+  return [
+    {
+      value: 56,
+      color: COLORS.CONTROL,
+    },
+    {
+      value: 43,
+      color: COLORS.CONTROL,
+    },
+    {
+      value: 44,
+      color: COLORS.CONTROL,
+    },
+    {
+      value: 29,
+      color: COLORS.CONTROL,
+    },
+    {
+      value: 38,
+      color: COLORS.CONTROL,
+    },
+    {
+      value: 26,
+      color: COLORS.CONTROL,
+    },
+  ];
   // return [
   //   {
   //     value: 1,
@@ -126,20 +153,48 @@ export function* bubbleSort(arr: Bar[]) {
   yield [...arr];
 }
 
-export function selectionSort(arr: Bar[]) {
-  let min;
+export function* selectionSort(arr: Bar[]) {
   for (let i = 0; i < arr.length - 1; i++) {
-    min = i;
+    let minIndex = i;
+    let swapped = false;
 
+    arr[i].color = COLORS.PRIMARY;
     for (let j = i + 1; j < arr.length; j++) {
-      if (arr[j].value < arr[i].value) {
-        min = j;
+      arr[j].color = COLORS.SECONDARY;
+      yield [...arr];
+
+      if (arr[j].value < arr[minIndex].value) {
+        minIndex = j;
+        swapped = true;
       }
+      arr[j].color = COLORS.CONTROL;
     }
-    const temp = arr[i].value;
-    arr[i].value = arr[min].value;
-    arr[min].value = temp;
+
+    if (swapped) {
+      arr[i].fromIndex = i;
+      arr[i].toIndex = minIndex;
+      arr[minIndex].fromIndex = minIndex;
+      arr[minIndex].toIndex = i;
+      yield [...arr];
+      const temp = arr[i].value;
+      arr[i].value = arr[minIndex].value;
+      arr[minIndex].value = temp;
+
+      arr.forEach((bar, i) => {
+        bar.fromIndex = bar.toIndex = i;
+      });
+
+      arr[i].color = COLORS.CONTROL;
+      arr[minIndex].color = COLORS.CONTROL;
+      yield [...arr];
+    } else {
+      arr[i].color = COLORS.CONTROL;
+      arr[i + 1].color = COLORS.CONTROL;
+    }
+  }
+  for (let bar of arr) {
+    bar.color = COLORS.SORTED;
   }
 
-  return [...arr];
+  yield [...arr];
 }
