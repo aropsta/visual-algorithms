@@ -13,7 +13,6 @@ export enum COLORS {
   CONTROL = "white",
   SORTED = "springgreen",
   NOCHANGE = "black",
-  MIN = "yellow",
 }
 
 //generating our data
@@ -172,17 +171,13 @@ export function* selectionSort(arr: Bar[]) {
       yield [...arr];
 
       if (arr[j].value < arr[minIndex].value) {
-        if (minIndex !== i) arr[minIndex].color = COLORS.CONTROL;
         minIndex = j;
-        arr[minIndex].color = COLORS.MIN;
         swapped = true;
-        yield [...arr];
       }
-      if (arr[j].color !== COLORS.MIN) arr[j].color = COLORS.CONTROL;
+      arr[j].color = COLORS.CONTROL;
     }
 
     if (swapped) {
-      arr[minIndex].color = COLORS.MIN;
       arr[i].fromIndex = i;
       arr[i].toIndex = minIndex;
       arr[minIndex].fromIndex = minIndex;

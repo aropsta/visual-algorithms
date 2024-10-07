@@ -29,7 +29,7 @@ export default function Graph() {
   const svgRef = useRef<SVGSVGElement>(null);
 
   //The data array and size that is dynamically set by a slider
-  const minSize = 6;
+  const minSize = 8;
   const [sliderValue, setSliderValue] = useState(minSize);
   //value of speed slider
   const [rate, setRate] = useState(300);
@@ -276,7 +276,6 @@ export default function Graph() {
 
   //begin the sorting algorithm
   function onSort() {
-    console.log("onSort()", data);
     //reset colours if button is clicked.
     resetColors();
 
