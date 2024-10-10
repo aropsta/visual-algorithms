@@ -4,6 +4,7 @@ import genObj, {
   COLORS,
   bubbleSort,
   selectionSort,
+  insertionSort,
 } from "../lib/Algorithms";
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
@@ -54,8 +55,8 @@ export default function Graph() {
   const animRef = useRef<number | null>();
   const prevTime = useRef(0);
 
-  const algorithmList: string[] = ["Bubble", "Selection"];
-  const [currentAlgorithm, setAlgorithm] = useState("Selection");
+  const algorithmList: string[] = ["Bubble", "Selection", "Insertion"];
+  const [currentAlgorithm, setAlgorithm] = useState("Insertion");
 
   const updateGraph = useCallback(() => {
     const svgSelection = d3.select(svgRef.current);
@@ -286,7 +287,6 @@ export default function Graph() {
       setData([...data]);
     });
   }
-
   //begin the sorting algorithm
   function onSort() {
     //reset colours if button is clicked.
@@ -303,6 +303,9 @@ export default function Graph() {
         case algorithmList[1]:
           progRef.current = selectionSort(data);
           break;
+        case algorithmList[2]:
+          progRef.current = insertionSort(data);
+          break;
         default:
           progRef.current = bubbleSort(data);
       }
@@ -310,7 +313,6 @@ export default function Graph() {
       animRef.current = requestAnimationFrame(stepFunction);
     }
   }
-
   //Used to progress the *gen function at a constant rate
   function stepFunction(time: number) {
     let interval = time - prevTime.current;
@@ -338,6 +340,7 @@ export default function Graph() {
   function shuffle() {
     setData(genObj(sliderValue));
   }
+
   function selectorChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const value = e.target.value;
     setAlgorithm(value);

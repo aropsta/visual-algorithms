@@ -102,7 +102,6 @@ export function* bubbleSort(arr: Bar[]) {
   yield [...arr];
 }
 
-//BUG: D3 sometimes swapping bars back randomly. No idea what the cause or trigger is. Maybe something with updating graphs and the to/from indexes
 export function* selectionSort(arr: Bar[]) {
   //outer for loop that goes through each element of array
   for (let i = 0; i < arr.length - 1; i++) {
@@ -161,4 +160,35 @@ export function* selectionSort(arr: Bar[]) {
   }
 
   yield [...arr];
+}
+
+export function insertionSortBare(arr: number[]) {
+  for (let i = 1; i < arr.length; i++) {
+    let temp = arr[i];
+    let j = i - 1;
+
+    //Shifting values to the right by 1
+    while (j >= 0 && arr[j] > temp) {
+      arr[j + 1] = arr[j];
+      j += -1;
+
+      arr[j + 1] = temp;
+    }
+    return [...arr];
+  }
+}
+export function* insertionSort(arr: Bar[]) {
+  for (let i = 1; i < arr.length; i++) {
+    let temp = arr[i];
+    let j = i - 1;
+
+    //Shifting values to the right by 1
+    while (j >= 0 && arr[j].value > temp.value) {
+      arr[j + 1] = arr[j];
+      j += -1;
+
+      arr[j + 1] = temp;
+    }
+    yield [...arr];
+  }
 }
