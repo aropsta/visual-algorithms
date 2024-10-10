@@ -8,6 +8,7 @@ import genObj, {
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
 import "../styles/App.scss";
+import { BaseType } from "d3";
 
 //size of our SVG chart
 export enum chartDimens {
@@ -24,12 +25,14 @@ export enum chartDimens {
   innerWidth = outerWidth - 2 * paddingInline,
 }
 
+//
+type D3Selection = d3.Selection<BaseType, Bar, BaseType, unknown>;
 export default function Graph() {
   //Svg DOM reference and d3.select variables
   const svgRef = useRef<SVGSVGElement>(null);
 
   //The data array and size that is dynamically set by a slider
-  const minSize = 8;
+  const minSize = 10;
   const [sliderValue, setSliderValue] = useState(minSize);
   //value of speed slider
   const [rate, setRate] = useState(300);
@@ -46,6 +49,7 @@ export default function Graph() {
   //reference to *generator function. Used to progress it
   const progRef = useRef<Generator<Bar[]> | null>(null);
 
+  const transitionRef = useRef<d3.Transition<any, any, any, any> | null>(null);
   //reference to track running of requestAnimationFrame() function
   const animRef = useRef<number | null>();
   const prevTime = useRef(0);
@@ -88,7 +92,7 @@ export default function Graph() {
     // If there is no group/graph, create a new one
     if (svgSelection.select(".group").empty()) {
       // Appending a group for our x-axis to our selection, also positioning it at the same time
-      svgSelection!
+      svgSelection
         .append("g")
         .attr("class", "x-axis")
         .attr(
@@ -104,11 +108,6 @@ export default function Graph() {
         .call(xAxis);
 
       //y-axis unsed
-      // const yAxisGroup = svgSelection
-      //   .append("g")
-      //   .attr("fill", "white")
-      //   .attr("transform", `translate(${chartDimens.paddingBlock}, 0)`)
-      //   .call(yAxis);
 
       //Begin by appending a group for better management of individual bars
       //'select' all proceeding rectangles and asscociate them with a given array of data.
@@ -148,11 +147,26 @@ export default function Graph() {
         .text((d) => d.value.toString());
       return;
     }
+
+    const t = d3
+      .transition()
+      .duration(speedRef.current / 1.2)
+      .on("start", () => {})
+      .on("end", () => {
+        // Update all indices after transition completes
+        data.forEach((bar, i) => {
+          bar.fromIndex = bar.toIndex = i;
+        });
+      });
+
     //Define our joined data+elements
-    const barData = svgSelection.select(".group").selectAll(".bar").data(data);
+    const barData: D3Selection = svgSelection
+      .select(".group")
+      .selectAll<BaseType, Bar>(".bar")
+      .data<Bar>(data, (d: Bar) => d?.id || "");
+
     //Remove
     //'exit()' returns or 'selects' elements which are currently rendered, but do not have corresponding data in the array. We remove these
-
     barData
       .exit()
 
@@ -160,7 +174,6 @@ export default function Graph() {
 
     //Update
     //Recalculating attributes for bars since data has been changed.
-
     //Conditionally set animation transitions if update is caused from a new element being added or not. Prevents the transitions from conflicting
     if (newElement.current) {
       barData
@@ -170,7 +183,7 @@ export default function Graph() {
         .transition()
         .duration(speedRef.current / 2)
         .attr("width", xScale.bandwidth())
-        .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!)
+        .attr("x", (d, i) => xScale(d.fromIndex?.toString() ?? i.toString())!)
         .attr("height", (d) => yScale(d.value))
         .attr(
           "y",
@@ -197,8 +210,7 @@ export default function Graph() {
             chartDimens.innerHeight -
             yScale(d.value),
         )
-        .transition()
-        .duration(speedRef.current)
+        .transition(t)
         .attr("width", xScale.bandwidth())
         .attr("x", (d, i) => xScale(d.toIndex?.toString() ?? i.toString())!);
       barData.select("title").text((d) => d.value);
@@ -255,6 +267,7 @@ export default function Graph() {
       setData((currentData) => [
         ...currentData,
         {
+          id: `bar-${currentData.length - 1}-${Math.random()}`,
           value: randomValue(1, 100),
           color: COLORS.CONTROL,
           type: "none",
@@ -373,6 +386,7 @@ export default function Graph() {
           </label>
           <input
             disabled={animRef.current ? true : false}
+            className={animRef.current ? "disabled" : ""}
             list="markers"
             id="slider"
             min={minSize}

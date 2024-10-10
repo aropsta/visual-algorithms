@@ -1,10 +1,12 @@
 import { randomValue } from "./utils";
 
 export interface Bar {
+  id: string;
   value: number;
   color: string;
   fromIndex?: number;
   toIndex?: number;
+  transitionState?: "pending" | "active" | "complete";
 }
 
 export enum COLORS {
@@ -21,75 +23,14 @@ export default function genObj(max: number): Bar[] {
   let array: Bar[] = [];
   for (let i = 0; i < max; i++) {
     array.push({
+      id: `bar-${i}-${Math.random()}`,
       value: randomValue(1, 100),
       color: COLORS.CONTROL,
+      fromIndex: i,
+      toIndex: i,
     });
   }
-  // return array;
-  return [
-    {
-      value: 17,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 8,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 34,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 25,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 17,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 14,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 72,
-      color: COLORS.CONTROL,
-    },
-    {
-      value: 94,
-      color: COLORS.CONTROL,
-    },
-  ];
-  // return [
-  //   {
-  //     value: 1,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 58,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 26,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 100,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 2,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 5,
-  //     color: "black",
-  //   },
-  //   {
-  //     value: 11,
-  //     color: "black",
-  //   },
-  // ];
+  return array;
 }
 
 export function bubbleSortBare(array: Bar[]) {
@@ -161,16 +102,23 @@ export function* bubbleSort(arr: Bar[]) {
   yield [...arr];
 }
 
+//BUG: D3 sometimes swapping bars back randomly. No idea what the cause or trigger is. Maybe something with updating graphs and the to/from indexes
 export function* selectionSort(arr: Bar[]) {
+  //outer for loop that goes through each element of array
   for (let i = 0; i < arr.length - 1; i++) {
+    //initialize some variables
     let minIndex = i;
     let swapped = false;
 
+    //set the colour of the current value that will be getting compared against others
     arr[i].color = COLORS.PRIMARY;
+
+    //inner loop that checks the min value for each element against all others
     for (let j = i + 1; j < arr.length; j++) {
       arr[j].color = COLORS.SECONDARY;
       yield [...arr];
 
+      //finding the minimum value for the current elelment
       if (arr[j].value < arr[minIndex].value) {
         if (minIndex !== i) arr[minIndex].color = COLORS.CONTROL;
         minIndex = j;
@@ -178,11 +126,13 @@ export function* selectionSort(arr: Bar[]) {
         swapped = true;
         yield [...arr];
       }
+      //logic for setting the color of the 'minimum' value
       if (arr[j].color !== COLORS.MIN) arr[j].color = COLORS.CONTROL;
     }
 
     if (swapped) {
       arr[minIndex].color = COLORS.MIN;
+      //setting some properties that d3 will use to animate swap operations
       arr[i].fromIndex = i;
       arr[i].toIndex = minIndex;
       arr[minIndex].fromIndex = minIndex;
