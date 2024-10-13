@@ -1,9 +1,14 @@
 import { randomValue } from "./utils";
 
+//Interface for each bar. Holds various data
 export interface Bar {
+  //id used by d3. Not really using it at this stage.
   id: string;
+
   value: number;
   color: string;
+
+  //position data for d3 to show animation transition
   fromIndex?: number;
   toIndex?: number;
 }
@@ -32,6 +37,7 @@ export default function genObj(max: number): Bar[] {
   return array;
 }
 
+//bare algorithm
 export function bubbleSortBare(array: Bar[]) {
   for (let j = 0; j < array.length; j++) {
     let swapped = false; //optimization: check if a swap operation has occured, if not, then value is in its correct place and can exit inner loop
@@ -49,6 +55,7 @@ export function bubbleSortBare(array: Bar[]) {
   }
   return array;
 }
+//Generator function algorithm used by Graph component
 export function* bubbleSort(arr: Bar[]) {
   for (let j = 0; j < arr.length; j++) {
     let swapped = false; //optimization: check if a swap operation has occured, if not, then value is in its correct place and can exit inner loop
@@ -176,6 +183,7 @@ export function* insertionSort(arr: Bar[]) {
   for (let i = 1; i < arr.length; i++) {
     let temp = arr[i];
     let j = i - 1;
+    let shift = false;
 
     // Highlight the current element being inserted
     arr[i].color = COLORS.PRIMARY;
@@ -187,10 +195,17 @@ export function* insertionSort(arr: Bar[]) {
       yield [...arr];
       arr[j].color = COLORS.CONTROL;
       j--;
+      shift = true;
+    }
+    if (!shift) {
+      arr[i].color = COLORS.NOCHANGE;
+      yield [...arr];
+      arr[i].color = COLORS.CONTROL;
     }
 
-    // Shift all elements to the right at once
-    for (let k = i - 1; k > j; k--) {
+    // Shift all elements to the right
+
+    for (let k = i - 1; k > j && shift; k--) {
       arr[k + 1] = arr[k];
       arr[k + 1].fromIndex = k;
       arr[k + 1].toIndex = k + 1;
@@ -201,7 +216,6 @@ export function* insertionSort(arr: Bar[]) {
     arr[j + 1] = temp;
     arr[j + 1].fromIndex = i;
     arr[j + 1].toIndex = j + 1;
-    yield [...arr];
 
     // Reset colors for this pass
     for (let k = 0; k <= i; k++) {
