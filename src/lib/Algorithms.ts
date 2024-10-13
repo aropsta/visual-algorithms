@@ -6,7 +6,6 @@ export interface Bar {
   color: string;
   fromIndex?: number;
   toIndex?: number;
-  transitionState?: "pending" | "active" | "complete";
 }
 
 export enum COLORS {
@@ -130,7 +129,6 @@ export function* selectionSort(arr: Bar[]) {
     }
 
     if (swapped) {
-      arr[minIndex].color = COLORS.MIN;
       //setting some properties that d3 will use to animate swap operations
       arr[i].fromIndex = i;
       arr[i].toIndex = minIndex;
@@ -143,9 +141,6 @@ export function* selectionSort(arr: Bar[]) {
 
       arr[i].toIndex = arr[i].fromIndex = i;
       arr[minIndex].toIndex = arr[minIndex].fromIndex = minIndex;
-      // arr.forEach((bar, i) => {
-      //   bar.fromIndex = bar.toIndex = i;
-      // });
 
       arr[i].color = COLORS.CONTROL;
       arr[minIndex].color = COLORS.CONTROL;
@@ -182,13 +177,42 @@ export function* insertionSort(arr: Bar[]) {
     let temp = arr[i];
     let j = i - 1;
 
-    //Shifting values to the right by 1
-    while (j >= 0 && arr[j].value > temp.value) {
-      arr[j + 1] = arr[j];
-      j += -1;
+    // Highlight the current element being inserted
+    arr[i].color = COLORS.PRIMARY;
+    yield [...arr];
 
-      arr[j + 1] = temp;
+    // Find the position where temp should be inserted
+    while (j >= 0 && arr[j].value > temp.value) {
+      arr[j].color = COLORS.SECONDARY;
+      yield [...arr];
+      arr[j].color = COLORS.CONTROL;
+      j--;
+    }
+
+    // Shift all elements to the right at once
+    for (let k = i - 1; k > j; k--) {
+      arr[k + 1] = arr[k];
+      arr[k + 1].fromIndex = k;
+      arr[k + 1].toIndex = k + 1;
+      arr[k + 1].color = COLORS.SECONDARY;
+    }
+
+    // Place the temp element in its correct position
+    arr[j + 1] = temp;
+    arr[j + 1].fromIndex = i;
+    arr[j + 1].toIndex = j + 1;
+    yield [...arr];
+
+    // Reset colors for this pass
+    for (let k = 0; k <= i; k++) {
+      arr[k].color = COLORS.CONTROL;
     }
     yield [...arr];
   }
+
+  // Mark all elements as sorted
+  for (let bar of arr) {
+    bar.color = COLORS.SORTED;
+  }
+  yield [...arr];
 }
