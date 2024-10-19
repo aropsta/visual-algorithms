@@ -5,6 +5,8 @@ import genObj, {
   bubbleSort,
   selectionSort,
   insertionSort,
+  mergeSort,
+  quickSort,
 } from "../lib/Algorithms";
 import { randomValue } from "../lib/utils";
 import * as d3 from "d3";
@@ -55,7 +57,13 @@ export default function Graph() {
   const animRef = useRef<number | null>();
   const prevTime = useRef(0);
 
-  const algorithmList: string[] = ["Bubble", "Selection", "Insertion"];
+  const algorithmList: string[] = [
+    "Bubble",
+    "Selection",
+    "Insertion",
+    "Quick",
+    "Merge",
+  ];
   const [currentAlgorithm, setAlgorithm] = useState("Insertion");
 
   const updateGraph = useCallback(() => {
@@ -297,14 +305,20 @@ export default function Graph() {
     else {
       //begin generator function and assign it a ref
       switch (currentAlgorithm) {
-        case algorithmList[0]:
+        case "Bubble":
           progRef.current = bubbleSort(data);
           break;
-        case algorithmList[1]:
+        case "Selection":
           progRef.current = selectionSort(data);
           break;
-        case algorithmList[2]:
+        case "Insertion":
           progRef.current = insertionSort(data);
+          break;
+        case "Merge":
+          progRef.current = mergeSort(data);
+          break;
+        case "Quick":
+          progRef.current = quickSort(data);
           break;
         default:
           progRef.current = bubbleSort(data);
@@ -361,7 +375,11 @@ export default function Graph() {
           name="algorithms"
         >
           {algorithmList.map((algo, index) => (
-            <option key={index} value={algo}>
+            <option
+              key={index}
+              value={algo}
+              disabled={algo === "Merge" || algo === "Quick"}
+            >
               {algo} Sort
             </option>
           ))}

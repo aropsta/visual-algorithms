@@ -230,3 +230,69 @@ export function* insertionSort(arr: Bar[]) {
   }
   yield [...arr];
 }
+
+export function* mergeSort(arr: Bar[], start = 0, end = arr.length - 1) {
+  // if (start < end) {
+  //   const mid = Math.floor((start + end) / 2);
+  //
+  //   // Color the subarrays being divided
+  //   for (let i = start; i <= mid; i++) arr[i].color = COLORS.PRIMARY;
+  //   for (let i = mid + 1; i <= end; i++) arr[i].color = COLORS.SECONDARY;
+  //   yield [...arr];
+  //
+  //   // Recursively sort the left and right halves
+  //   yield* mergeSort(arr, start, mid);
+  //   yield* mergeSort(arr, mid + 1, end);
+  //
+  //   // Merge the sorted halves
+  //   yield* merge(arr, start, mid, end);
+  // }
+}
+
+function* merge(arr: Bar[], start: number, mid: number, end: number) {
+  let left = arr.slice(start, mid + 1);
+  let right = arr.slice(mid + 1, end + 1);
+  let i = 0,
+    j = 0,
+    k = start;
+
+  while (i < left.length && j < right.length) {
+    if (left[i].value <= right[j].value) {
+      arr[k] = left[i];
+      i++;
+    } else {
+      arr[k] = right[j];
+      j++;
+    }
+    arr[k].fromIndex = arr[k].toIndex = k;
+    arr[k].color = COLORS.PRIMARY;
+    k++;
+    yield [...arr];
+  }
+
+  while (i < left.length) {
+    arr[k] = left[i];
+    arr[k].fromIndex = arr[k].toIndex = k;
+    arr[k].color = COLORS.PRIMARY;
+    i++;
+    k++;
+    yield [...arr];
+  }
+
+  while (j < right.length) {
+    arr[k] = right[j];
+    arr[k].fromIndex = arr[k].toIndex = k;
+    arr[k].color = COLORS.PRIMARY;
+    j++;
+    k++;
+    yield [...arr];
+  }
+
+  // Reset colors after merging
+  for (let i = start; i <= end; i++) {
+    arr[i].color = COLORS.CONTROL;
+  }
+  yield [...arr];
+}
+
+export function* quickSort(arr: Bar[]) {}
