@@ -3,6 +3,8 @@ Algorithms are showcased running in real time, with variable speed.
 
 D3.js was used to implement visualizations.
 
+![screenshot](public/screenshot.png)
+
 ### Currently implemented Algorithms
 
 - Quick sort
